@@ -62,15 +62,30 @@ auto coordsFrom8x8(unsigned char coords) -> Coords0x88 {
 
 // ========== GAME ========== //
 
-class Move; // TODO: implement Move class.
+struct MoveStage {
+    MoveStage(Piece piece, Coords0x88 from, Coords0x88 to)
+    : piece(piece), from(from), to(to) {}
 
+    const Piece piece;
+    const Coords0x88 from, to;
+};
+
+// First member is the main part.
+// Second member can be used for castling and en passant.
+using Move = const std::pair<MoveStage, std::optional<MoveStage>>;
 
 struct GameState {
     virtual auto cell(Coords0x88) const -> std::optional<Piece> = 0;
     virtual auto colourToMove() const -> Piece::Colour = 0;
     virtual auto withMove(Move) const -> std::shared_ptr<GameState> = 0;
-    virtual auto previousMove() const -> std::shared_ptr<GameState> = 0;
+    virtual auto previousState() const -> std::shared_ptr<GameState> final;
+private:
+    const std::shared_ptr<GameState> previousState_;
 };
+
+auto GameState::previousState() const -> std::shared_ptr<GameState> {
+    return previousState_;
+}
 
 struct FullGameState final : GameState {
     using Board = std::array<std::optional<Piece>, 128>;
@@ -78,7 +93,6 @@ struct FullGameState final : GameState {
     auto cell(Coords0x88 coords) const -> std::optional<Piece> final;
     auto colourToMove() const -> Piece::Colour final;
     auto withMove(Move) const -> std::shared_ptr<GameState> final;
-    auto previousMove() const -> std::shared_ptr<GameState> final;
 
 private:
     Board board_;
