@@ -72,14 +72,15 @@ struct MoveStage {
 
 // First member is the main part.
 // Second member can be used for castling and en passant.
-using Move = const std::pair<MoveStage, std::optional<MoveStage>>;
+using Move = std::pair<MoveStage, std::optional<MoveStage>>;
 
 struct GameState {
     virtual auto cell(Coords0x88) const -> std::optional<Piece> = 0;
     virtual auto colourToMove() const -> Piece::Colour = 0;
     virtual auto withMove(Move) const -> std::shared_ptr<GameState> = 0;
     virtual auto previousState() const -> std::shared_ptr<GameState> final;
-private:
+
+protected:
     const std::shared_ptr<GameState> previousState_;
 };
 
@@ -90,13 +91,13 @@ auto GameState::previousState() const -> std::shared_ptr<GameState> {
 struct FullGameState final : GameState {
     using Board = std::array<std::optional<Piece>, 128>;
 
-    auto cell(Coords0x88 coords) const -> std::optional<Piece> final;
+    auto cell(Coords0x88) const -> std::optional<Piece> final;
     auto colourToMove() const -> Piece::Colour final;
     auto withMove(Move) const -> std::shared_ptr<GameState> final;
 
 private:
     Board board_;
-    Piece::Colour colourToMove_ = Piece::Colour::White;
+    const Piece::Colour colourToMove_ = Piece::Colour::White;
 };
 
 auto FullGameState::cell(Coords0x88 coords) const -> std::optional<Piece> {
@@ -105,4 +106,44 @@ auto FullGameState::cell(Coords0x88 coords) const -> std::optional<Piece> {
 
 auto FullGameState::colourToMove() const -> Piece::Colour {
     return colourToMove_;
+}
+
+
+struct PartialGameState final : GameState {
+    PartialGameState(Move move) : move_(move){};
+
+    auto cell(Coords0x88) const -> std::optional<Piece> final;
+    auto colourToMove() const -> Piece::Colour final;
+    auto withMove(Move) const -> std::shared_ptr<GameState> final;
+
+private:
+    const Move move_;
+    const Piece::Colour colourToMove_ = Piece::Colour::White;
+};
+
+auto FullGameState::withMove(Move move) const -> std::shared_ptr<GameState> {
+    return std::make_shared<PartialGameState>(move);
+}
+
+auto PartialGameState::cell(Coords0x88 coords) const -> std::optional<Piece> {
+    if (move_.first.from == coords) {
+        return {};
+    } else if (move_.first.to == coords) {
+        return move_.first.piece;
+    } else if (move_.second) {
+        if (move_.second->from == coords) {
+            return {};
+        } else if (move_.second->to == coords) {
+            return move_.second->piece;
+        }
+    }
+    return previousState_->cell(coords);
+}
+
+auto PartialGameState::colourToMove() const -> Piece::Colour {
+    return colourToMove_;
+}
+
+auto PartialGameState::withMove(Move move) const -> std::shared_ptr<GameState> {
+    return std::make_shared<PartialGameState>(move);
 }
