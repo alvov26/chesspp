@@ -57,6 +57,9 @@ namespace Directions {
     static const Direction Down  = Direction(0x77 + 0x10 - 0x00);
     static const Direction Left  = Direction(0x77 + 0x01 - 0x00);
     static const Direction Right = Direction(0x77 + 0x00 - 0x01);
+
+    template <size_t N>
+    using DirectionList = const std::array<const Direction, N>;
 }
 
 // Can be used as Up-Right-Right for Knight, for example
