@@ -138,13 +138,13 @@ auto GameState::availableMoves() const -> std::vector<Move> {
             case Piece::Type::Pawn:
                 // TODO: add en passant
                 if (currentPiece->colour == Piece::Colour::White){
-                    generateRayMoves(Up-Left,  isValidForPawnJustMoving, 1);
-                    generateRayMoves(Up-Right, isValidForPawnJustMoving, 1);
+                    generateRayMoves(Up-Left,  isValidForPawnTaking, 1);
+                    generateRayMoves(Up-Right, isValidForPawnTaking, 1);
                     if (Rank(currentCell) == 1) generateRayMoves(Up, isValidForPawnJustMoving, 2);
                     else generateRayMoves(Up,  isValidForPawnJustMoving, 1);
                 } else {
-                    generateRayMoves(Down-Left,  isValidForPawnJustMoving, 1);
-                    generateRayMoves(Down-Right, isValidForPawnJustMoving, 1);
+                    generateRayMoves(Down-Left,  isValidForPawnTaking, 1);
+                    generateRayMoves(Down-Right, isValidForPawnTaking, 1);
                     if (Rank(currentCell) == 6) generateRayMoves(Down, isValidForPawnJustMoving, 2);
                     else generateRayMoves(Down,  isValidForPawnJustMoving, 1);
                 }
