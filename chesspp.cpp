@@ -38,15 +38,25 @@ constexpr auto operator-(Direction lhs, Direction rhs) -> Direction {
     return Direction(static_cast<unsigned char>(lhs) - 0x77 + static_cast<unsigned char>(rhs));
 }
 
-constexpr auto Apply(Coords0x88 c, Direction dir) -> Coords0x88 {
+constexpr auto apply(Coords0x88 c, Direction dir) -> Coords0x88 {
     return Coords0x88(static_cast<unsigned char>(c) + 0x77 - static_cast<unsigned char>(dir));
 }
 
+// ========== MOVES ========== //
+
+MoveStage::MoveStage(Piece piece, Coords0x88 from, Coords0x88 to)
+: piece(piece), from(from), to(to) {}
+
+Move::Move(MoveStage first) noexcept
+: first(std::move(first)), second({}) {}
+
+Move::Move(MoveStage first, std::optional<MoveStage> second) noexcept
+: first(std::move(first)), second(std::move(second)) {}
 
 // ========== GAME STATE ========== //
 
 GameState::GameState(Piece::Colour colourToMove, std::shared_ptr<const GameState> prev) noexcept
-        : colourToMove_(colourToMove), previousState_(std::move(prev)) {}
+: colourToMove_(colourToMove), previousState_(std::move(prev)) {}
 
 auto GameState::colourToMove() const -> Piece::Colour {
     return colourToMove_;
@@ -68,7 +78,7 @@ auto GameState::availableMoves() const -> std::vector<Move> {
         Up-Right-Right, Down-Right-Right, Up-Left-Left, Down-Left-Left,
         Right-Up-Up, Left-Up-Up, Right-Down-Down, Left-Down-Down
     };
-    static auto isValid = [&](Move move) -> bool {
+    auto isValid = [&](Move move) -> bool {
         if (offTheBoard(move.first.to))
             return false;
         const auto piece = cell(move.first.to);
@@ -83,7 +93,6 @@ auto GameState::availableMoves() const -> std::vector<Move> {
         }
         return true;
     };
-    
 
     auto result = std::vector<Move>();
     for (unsigned char c = 0; c < 0x78; ++c) {
@@ -92,24 +101,48 @@ auto GameState::availableMoves() const -> std::vector<Move> {
         if (!currentPiece || currentPiece->colour != colourToMove_) {
             continue;
         }
+
+        auto generateRayMoves = [&](Direction direction){
+            auto goal = apply(currentCell, direction);
+            auto move = std::make_unique<Move>(MoveStage(*currentPiece, currentCell, goal));
+            while (isValid(*move)) {
+                result.push_back(*move);
+                goal = apply(goal, direction);
+                move = std::make_unique<Move>(MoveStage(*currentPiece, currentCell, goal));
+            };
+        };
+
         switch (currentPiece->type) {
             case Piece::Type::Pawn:
+                // TODO: generate pawn moves
                 break;
             case Piece::Type::Bishop:
+                for (const auto direction : bishopDirections)
+                    generateRayMoves(direction);
                 break;
             case Piece::Type::Knight:
-                break;
-            case Piece::Type::Rook:
-                break;
-            case Piece::Type::Queen:
-                break;
-            case Piece::Type::King:
                 for (const auto direction : queenAndKingDirections) {
-                    const auto move = Move{
-                            MoveStage(*currentPiece, currentCell, Apply(currentCell, direction)), {}
-                    };
+                    const auto move = Move(
+                            MoveStage(*currentPiece, currentCell, apply(currentCell, direction)));
                     if (isValid(move)) result.push_back(move);
                 }
+                break;
+            case Piece::Type::Rook:
+                for (const auto direction : rookDirections)
+                    generateRayMoves(direction);
+                break;
+            case Piece::Type::Queen:
+                for (const auto direction : queenAndKingDirections)
+                    generateRayMoves(direction);
+                break;
+            case Piece::Type::King:
+                // TODO: generate castling
+                for (const auto direction : queenAndKingDirections) {
+                    const auto move = Move(
+                            MoveStage(*currentPiece, currentCell, apply(currentCell, direction)));
+                    if (isValid(move)) result.push_back(move);
+                }
+                break;
         }
     }
     return result;
@@ -155,5 +188,4 @@ auto PartialGameState::cell(Coords0x88 coords) const -> std::optional<Piece> {
 auto PartialGameState::withMove(Move move) const -> std::shared_ptr<const GameState> {
     return std::make_shared<const PartialGameState>(switched(colourToMove_), shared_from_this(), move);
 }
-
 

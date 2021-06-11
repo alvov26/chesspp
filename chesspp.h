@@ -18,16 +18,15 @@
 
 class Piece {
 public:
-    enum class Type : char {
+    enum class Type : unsigned char {
         Pawn, Bishop, Knight,
         Rook, King, Queen,
         };
-    enum class Colour : char {
+    enum class Colour : unsigned char {
         White, Black
     };
 
-    Piece(Colour colour, Type type);;
-
+    Piece(Colour colour, Type type);
     Piece() = delete;
 
     const Colour colour;
@@ -65,13 +64,12 @@ namespace Directions {
 // Can be used as Up-Right-Right for Knight, for example
 constexpr auto operator- (Direction, Direction) -> Direction;
 
-constexpr auto Apply(Coords0x88, Direction) -> Coords0x88;
+constexpr auto apply(Coords0x88 c, Direction dir) -> Coords0x88;
 
 // ========== MOVE ========== //
 
 struct MoveStage {
-    MoveStage(Piece piece, Coords0x88 from, Coords0x88 to)
-    : piece(piece), from(from), to(to) {}
+    MoveStage(Piece piece, Coords0x88 from, Coords0x88 to);
 
     const Piece piece;
     const Coords0x88 from, to;
@@ -79,7 +77,15 @@ struct MoveStage {
 
 // First member is the main part.
 // Second member can be used for castling and en passant.
-using Move = std::pair<MoveStage, std::optional<MoveStage>>;
+//using Move = std::pair<MoveStage, std::optional<MoveStage>>;
+
+struct Move {
+    explicit Move(MoveStage first) noexcept;
+    Move(MoveStage first, std::optional<MoveStage> second) noexcept;
+
+    const MoveStage first;
+    const std::optional<MoveStage> second;
+};
 
 
 // ========== GAME STATE ========== //
