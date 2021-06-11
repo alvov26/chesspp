@@ -7,6 +7,8 @@
 #include <array>
 #include <optional>
 #include <memory>
+#include <vector>
+#include <iterator>
 
 // TODO: write tests for all these classes.
 // It should be done using GTest framework.
@@ -45,6 +47,23 @@ inline auto offTheBoard(Coords0x88 coords) -> bool;
 inline auto coordsTo8x8(Coords0x88 coords) -> unsigned char;
 inline auto coordsFrom8x8(unsigned char coords) -> Coords0x88;
 
+// ========== DIRECTIONS ========== //
+
+// they will be useful in move generation
+
+enum class Direction : unsigned char {};
+namespace Directions {
+    static const Direction Up    = Direction(0x77 + 0x00 - 0x10);
+    static const Direction Down  = Direction(0x77 + 0x10 - 0x00);
+    static const Direction Left  = Direction(0x77 + 0x01 - 0x00);
+    static const Direction Right = Direction(0x77 + 0x00 - 0x01);
+}
+
+// Can be used as Up-Right-Right for Knight, for example
+constexpr auto operator- (Direction, Direction) -> Direction;
+
+constexpr auto Apply(Coords0x88, Direction) -> Coords0x88;
+
 // ========== MOVE ========== //
 
 struct MoveStage {
@@ -68,8 +87,9 @@ struct GameState : std::enable_shared_from_this<GameState> {
     virtual auto cell(Coords0x88) const -> std::optional<Piece> = 0;
     virtual auto withMove(Move) const -> std::shared_ptr<const GameState> = 0;
 
-    virtual auto colourToMove() const -> Piece::Colour final;
     virtual auto previousState() const -> std::shared_ptr<const GameState> final;
+    virtual auto availableMoves() const -> std::vector<Move> final;
+    virtual auto colourToMove() const -> Piece::Colour final;
 
     virtual ~GameState() = default;
 

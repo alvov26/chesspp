@@ -29,6 +29,14 @@ auto coordsFrom8x8(unsigned char coords) -> Coords0x88 {
     return Coords0x88(coords + (coords & ~7));
 }
 
+constexpr auto operator-(Direction lhs, Direction rhs) -> Direction {
+    return Direction(static_cast<unsigned char>(lhs) - 0x77 + static_cast<unsigned char>(rhs));
+}
+
+constexpr auto Apply(Coords0x88 c, Direction dir) -> Coords0x88 {
+    return Coords0x88(static_cast<unsigned char>(c) + 0x77 - static_cast<unsigned char>(dir));
+}
+
 
 // ========== GAME STATE ========== //
 
@@ -41,6 +49,31 @@ auto GameState::colourToMove() const -> Piece::Colour {
 
 auto GameState::previousState() const -> std::shared_ptr<const GameState> {
     return previousState_;
+}
+
+auto GameState::availableMoves() const -> std::vector<Move> {
+    auto result = std::vector<Move>();
+    for (unsigned char c = 0; c < 0x78; ++c) {
+        const auto piece = cell(Coords0x88(c));
+        if (!piece || piece->colour != colourToMove_) {
+            continue;
+        }
+        switch (piece->type) {
+            case Piece::Type::Pawn:
+                break;
+            case Piece::Type::Bishop:
+                break;
+            case Piece::Type::Knight:
+                break;
+            case Piece::Type::Rook:
+                break;
+            case Piece::Type::Queen:
+                break;
+            case Piece::Type::King:
+                break;
+        }
+    }
+    return result;
 }
 
 
