@@ -42,6 +42,8 @@ inline auto switched(Piece::Colour) -> Piece::Colour;
 // To know more: https://www.chessprogramming.org/0x88#Off_the_Board
 enum class Coords0x88 : unsigned char {};
 
+inline auto Rank(Coords0x88) -> unsigned char;
+
 inline auto offTheBoard(Coords0x88 coords) -> bool;
 inline auto coordsTo8x8(Coords0x88 coords) -> unsigned char;
 inline auto coordsFrom8x8(unsigned char coords) -> Coords0x88;

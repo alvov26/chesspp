@@ -42,6 +42,10 @@ constexpr auto apply(Coords0x88 c, Direction dir) -> Coords0x88 {
     return Coords0x88(static_cast<unsigned char>(c) + 0x77 - static_cast<unsigned char>(dir));
 }
 
+auto Rank(Coords0x88 coords) -> unsigned char {
+    return static_cast<unsigned char>(coords) >> 4;
+}
+
 // ========== MOVES ========== //
 
 MoveStage::MoveStage(Piece piece, Coords0x88 from, Coords0x88 to)
@@ -94,6 +98,24 @@ auto GameState::availableMoves() const -> std::vector<Move> {
         return true;
     };
 
+    auto isValidForPawnJustMoving = [&](Move move) -> bool {
+        if (offTheBoard(move.first.to)) return false;
+        const auto piece = cell(move.first.to);
+        if (piece) return false;
+        if (move.second) return false;
+        return true;
+    };
+
+    auto isValidForPawnTaking = [&](Move move) -> bool {
+        if (offTheBoard(move.first.to))
+            return false;
+        const auto piece = cell(move.first.to);
+        if (!piece || piece->colour == move.first.piece.colour)
+            return false;
+        if (move.second) return false;
+        return true;
+    };
+
     auto result = std::vector<Move>();
     for (unsigned char c = 0; c < 0x78; ++c) {
         const auto currentCell  = Coords0x88(c);
@@ -102,10 +124,10 @@ auto GameState::availableMoves() const -> std::vector<Move> {
             continue;
         }
 
-        auto generateRayMoves = [&](Direction direction){
+        auto generateRayMoves = [&](Direction direction, auto validator, unsigned n = 8){
             auto goal = apply(currentCell, direction);
             auto move = std::make_unique<Move>(MoveStage(*currentPiece, currentCell, goal));
-            while (isValid(*move)) {
+            while (validator(*move) && n --> 0) {
                 result.push_back(*move);
                 goal = apply(goal, direction);
                 move = std::make_unique<Move>(MoveStage(*currentPiece, currentCell, goal));
@@ -114,11 +136,22 @@ auto GameState::availableMoves() const -> std::vector<Move> {
 
         switch (currentPiece->type) {
             case Piece::Type::Pawn:
-                // TODO: generate pawn moves
+                // TODO: add en passant
+                if (currentPiece->colour == Piece::Colour::White){
+                    generateRayMoves(Up-Left,  isValidForPawnJustMoving, 1);
+                    generateRayMoves(Up-Right, isValidForPawnJustMoving, 1);
+                    if (Rank(currentCell) == 1) generateRayMoves(Up, isValidForPawnJustMoving, 2);
+                    else generateRayMoves(Up,  isValidForPawnJustMoving, 1);
+                } else {
+                    generateRayMoves(Down-Left,  isValidForPawnJustMoving, 1);
+                    generateRayMoves(Down-Right, isValidForPawnJustMoving, 1);
+                    if (Rank(currentCell) == 6) generateRayMoves(Down, isValidForPawnJustMoving, 2);
+                    else generateRayMoves(Down,  isValidForPawnJustMoving, 1);
+                }
                 break;
             case Piece::Type::Bishop:
                 for (const auto direction : bishopDirections)
-                    generateRayMoves(direction);
+                    generateRayMoves(direction, isValid);
                 break;
             case Piece::Type::Knight:
                 for (const auto direction : queenAndKingDirections) {
@@ -129,11 +162,11 @@ auto GameState::availableMoves() const -> std::vector<Move> {
                 break;
             case Piece::Type::Rook:
                 for (const auto direction : rookDirections)
-                    generateRayMoves(direction);
+                    generateRayMoves(direction, isValid);
                 break;
             case Piece::Type::Queen:
                 for (const auto direction : queenAndKingDirections)
-                    generateRayMoves(direction);
+                    generateRayMoves(direction, isValid);
                 break;
             case Piece::Type::King:
                 // TODO: generate castling
