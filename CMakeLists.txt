@@ -4,4 +4,4 @@ project(chesspp)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(chesspp
-        main.cpp)
+        main.cpp chesspp.cpp chesspp.h)
